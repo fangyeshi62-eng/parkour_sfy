@@ -1,0 +1,8 @@
+Importing module 'gym_38' (/data/run01/scxi678/Workspace/isaacgym/python/isaacgym/_bindings/linux-x86_64/gym_38.so)
+Setting GYM_USD_PLUG_INFO_PATH to /data/run01/scxi678/Workspace/isaacgym/python/isaacgym/_bindings/linux-x86_64/usd/plugInfo.json
+Traceback (most recent call last):
+  File "train.py", line 37, in <module>
+    from legged_gym.envs import *
+  File "/data/run01/scxi678/Workspace/parkour_sfy-0313master/parkour_sfy-0313master/legged_gym/legged_gym/envs/__init__.py", line 32, in <module>
+    from legged_gym.envs.a1.a1_config import A1RoughCfg, A1RoughCfgPPO, A1PlaneCfg, A1RoughCfgTPPO
+ModuleNotFoundError: No module named 'legged_gym.envs.a1'

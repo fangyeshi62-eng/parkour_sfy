@@ -1,0 +1,76 @@
+Importing module 'gym_38' (/data/run01/scxi678/Workspace/isaacgym/python/isaacgym/_bindings/linux-x86_64/gym_38.so)
+Setting GYM_USD_PLUG_INFO_PATH to /data/run01/scxi678/Workspace/isaacgym/python/isaacgym/_bindings/linux-x86_64/usd/plugInfo.json
+PyTorch version 2.4.1+cu121
+Device count 1
+/data/run01/scxi678/Workspace/isaacgym/python/isaacgym/_bindings/src/gymtorch
+Using /data/run01/scxi678/.cache/torch_extensions/py38_cu121 as PyTorch extensions root...
+Emitting ninja build file /data/run01/scxi678/.cache/torch_extensions/py38_cu121/gymtorch/build.ninja...
+Building extension module gymtorch...
+Allowing ninja to set a default number of workers... (overridable by setting the environment variable MAX_JOBS=N)
+ninja: no work to do.
+Loading extension module gymtorch...
+Setting seed: 1
+Not connected to PVD
++++ Using GPU PhysX
+Physics Engine: PhysX
+Physics Device: cuda:0
+GPU Pipeline: enabled
+Terrain heightsamples shape:  (2560, 2560)
+Terrain heightsamples stat:  0.005 0.075 0.04117176818847656 0.011099462386507998 0.04
+/data/home/scxi678/run/parkour_env/lib/python3.8/site-packages/torch/functional.py:513: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at ../aten/src/ATen/native/TensorShape.cpp:3609.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+Total number of volume estimation points for each robot is: 1028
+Actor MLP: Sequential(
+  (0): Linear(in_features=256, out_features=512, bias=True)
+  (1): ELU(alpha=1.0)
+  (2): Linear(in_features=512, out_features=256, bias=True)
+  (3): ELU(alpha=1.0)
+  (4): Linear(in_features=256, out_features=128, bias=True)
+  (5): ELU(alpha=1.0)
+  (6): Linear(in_features=128, out_features=12, bias=True)
+)
+Critic MLP: Sequential(
+  (0): Linear(in_features=256, out_features=512, bias=True)
+  (1): ELU(alpha=1.0)
+  (2): Linear(in_features=512, out_features=256, bias=True)
+  (3): ELU(alpha=1.0)
+  (4): Linear(in_features=256, out_features=128, bias=True)
+  (5): ELU(alpha=1.0)
+  (6): Linear(in_features=128, out_features=1, bias=True)
+)
+Actor RNN: Memory(
+  (rnn): GRU(80, 256)
+)
+Critic RNN: Memory(
+  (rnn): GRU(80, 256)
+)
+Loading load_run as absolute path: /data/home/scxi678/run/Workspace/parkour_sfy-0313master/parkour_sfy-0313master/legged_gym/logs/rough_ddog/Mar18_15-01-37_DdogRough
+Loading model from: /data/home/scxi678/run/Workspace/parkour_sfy-0313master/parkour_sfy-0313master/legged_gym/logs/rough_ddog/Mar18_15-01-37_DdogRough/model_5000.pt
+/data/run01/scxi678/Workspace/parkour_sfy-0313master/parkour_sfy-0313master/rsl_rl/rsl_rl/runners/on_policy_runner.py:259: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  loaded_dict = torch.load(path)
+Traceback (most recent call last):
+  File "train.py", line 51, in <module>
+    train(args)
+  File "train.py", line 47, in train
+    ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations, init_at_random_ep_len=True)
+  File "/data/run01/scxi678/Workspace/parkour_sfy-0313master/parkour_sfy-0313master/rsl_rl/rsl_rl/runners/on_policy_runner.py", line 87, in learn
+    self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/site-packages/tensorboardX/writer.py", line 300, in __init__
+    self._get_file_writer()
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/site-packages/tensorboardX/writer.py", line 348, in _get_file_writer
+    self.file_writer = FileWriter(logdir=self.logdir,
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/site-packages/tensorboardX/writer.py", line 104, in __init__
+    self.event_writer = EventFileWriter(
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/site-packages/tensorboardX/event_file_writer.py", line 105, in __init__
+    self._event_queue = multiprocessing.Queue(max_queue_size)
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/multiprocessing/context.py", line 103, in Queue
+    return Queue(maxsize, ctx=self.get_context())
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/multiprocessing/queues.py", line 47, in __init__
+    self._wlock = ctx.Lock()
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/multiprocessing/context.py", line 68, in Lock
+    return Lock(ctx=self.get_context())
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/multiprocessing/synchronize.py", line 162, in __init__
+    SemLock.__init__(self, SEMAPHORE, 1, 1, ctx=ctx)
+  File "/data/home/scxi678/run/parkour_env/lib/python3.8/multiprocessing/synchronize.py", line 57, in __init__
+    sl = self._semlock = _multiprocessing.SemLock(
+OSError: [Errno 28] No space left on device
