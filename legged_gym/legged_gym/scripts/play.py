@@ -28,6 +28,7 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
+from ast import Try
 from legged_gym import LEGGED_GYM_ROOT_DIR
 from collections import OrderedDict
 import os
@@ -126,7 +127,7 @@ def play(args):
     env_cfg.termination.timeout_at_border = False
     env_cfg.termination.timeout_at_finished = False
     env_cfg.viewer.debug_viz = True
-    env_cfg.viewer.draw_measure_heights = False
+    env_cfg.viewer.draw_measure_heights = True
     env_cfg.viewer.draw_height_measurements = False
     env_cfg.viewer.draw_volume_sample_points = False
     env_cfg.viewer.draw_sensors = False
@@ -490,7 +491,7 @@ def play(args):
             start_time = time.time_ns()
 
 if __name__ == '__main__':
-    EXPORT_POLICY = False
+    EXPORT_POLICY = True
     args = get_args([
         dict(name= "--slow", type= float, default= 0., help= "slow down the simulation by sleep secs (float) every frame"),
         dict(name= "--show_teacher", action= "store_true", default= False, help= "show teacher actions"),

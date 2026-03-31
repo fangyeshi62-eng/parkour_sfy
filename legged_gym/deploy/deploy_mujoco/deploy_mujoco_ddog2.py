@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     # --- 2. 环境初始化 ---
     model_path = f"{LEGGED_GYM_ROOT_DIR}/resources/robots/Ddog/Ddog_zrg.xml"
-    policy_path = f"{LEGGED_GYM_ROOT_DIR}/deploy/pre_train/ddog/policy_gru_ddog.pt"
+    policy_path = f"{LEGGED_GYM_ROOT_DIR}/deploy/pre_train/ddog/policy_gru_ddog2.pt"
     
     m = mujoco.MjModel.from_xml_path(model_path)
     d = mujoco.MjData(m)
@@ -268,7 +268,7 @@ if __name__ == "__main__":
                 obs[3:6] = omega * ang_vel_scale
                 obs[6:9] = get_gravity_orientation(quat)
                 obs[9:12] = current_cmd * np.array([lin_vel_scale, lin_vel_scale, ang_vel_scale])
-                #obs[9:12]=0
+                #obs[9:12]= [0.5 , 0 ,0 ]
                 obs[12:24] = (qj - default_angles) * dof_pos_scale
                 obs[24:36] = dqj * dof_vel_scale
                 obs[36:48] = action
@@ -292,12 +292,13 @@ if __name__ == "__main__":
                     target_dof_pos = action * action_scale + default_angles
                 elif d.time > 0.2:
                     target_dof_pos = action * action_scale + default_angles
-                ###打印调试信息
-                if counter % 100 == 0:
-                    #  print(f"Time: {d.time:.2f} | KP_Scale: {current_kp_scale:.2f} | Z-Vel: {lin_vel[2]:.2f}")
-                    #  print(obs[0:3])
-                    #  print(d.qpos[2])
-                     print(obs[48:279])
+                # 打印调试信息
+                # if counter % 100 == 0:
+                #      print(f"Time: {d.time:.2f} | KP_Scale: {current_kp_scale:.2f} | Z-Vel: {lin_vel[2]:.2f}")
+                #      print(obs[0:3])
+                #     #  print(d.qpos[2])
+                #      print(obs[48:279])
+                #      print(obs[6:9])
             counter += 1
             viewer.sync()
             

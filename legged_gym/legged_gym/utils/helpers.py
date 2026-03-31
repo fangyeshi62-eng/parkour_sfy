@@ -193,8 +193,18 @@ def get_args(custom_args=[]):
 
 def export_policy_as_jit(actor_critic, path):
     if hasattr(actor_critic, 'memory_a'):
-        # assumes LSTM: TODO add GRU
-        exporter = PolicyExporterLSTM(actor_critic)
+        rnn_module = actor_critic.memory_a.rnn
+        
+        # 自动判断类型
+        if isinstance(rnn_module, torch.nn.LSTM):
+            print("检测到 LSTM 模型，正在导出...")
+            exporter = PolicyExporterLSTM(actor_critic)
+        elif isinstance(rnn_module, torch.nn.GRU):
+            print("检测到 GRU 模型，正在导出...")
+            exporter = PolicyExporterGRU(actor_critic)
+        else:
+            raise TypeError(f"不支持的 RNN 类型: {type(rnn_module)}。仅支持 LSTM 或 GRU。")
+            
         exporter.export(path)
     else: 
         os.makedirs(path, exist_ok=True)
@@ -229,8 +239,82 @@ class PolicyExporterLSTM(torch.nn.Module):
         os.makedirs(path, exist_ok=True)
         path = os.path.join(path, 'policy_lstm_1.pt')
         self.to('cpu')
+        # 在 traced_script_module = torch.jit.script(self) 之前添加：
         traced_script_module = torch.jit.script(self)
         traced_script_module.save(path)
+
+
+class PolicyExporterGRU(torch.nn.Module):
+    def __init__(self, actor_critic):
+        super().__init__()
+        self.actor = copy.deepcopy(actor_critic.actor)
+        self.is_recurrent = actor_critic.is_recurrent
+        self.memory = copy.deepcopy(actor_critic.memory_a.rnn)
+        
+        if hasattr(actor_critic, 'encoders'):
+            self.encoders = copy.deepcopy(actor_critic.encoders)
+            self.encoders.cpu()
+        else:
+            self.encoders = None
+
+        self.actor.cpu()
+        self.memory.cpu()
+
+        # --- 新增：彻底清洗所有子模块中的 NumPy 类型 ---
+        for module in self.modules():
+            # 修复 Linear 层
+            if isinstance(module, torch.nn.Linear):
+                module.in_features = int(module.in_features)
+                module.out_features = int(module.out_features)
+            # 修复 RNN 层 (GRU/LSTM)
+            if isinstance(module, (torch.nn.GRU, torch.nn.LSTM)):
+                module.input_size = int(module.input_size)
+                module.hidden_size = int(module.hidden_size)
+                module.num_layers = int(module.num_layers)
+
+        # 注册 buffer
+        self.register_buffer('hidden_state', torch.zeros(self.memory.num_layers, 1, self.memory.hidden_size))
+
+    def forward(self, x):
+        # x 的输入维度是 279
+        # 1. 切片：前 48 维直接使用，后 231 维进入 encoder
+        obs_direct = x[:, :48]       # 形状: [batch, 48]
+        obs_to_encode = x[:, 48:]    # 形状: [batch, 231]
+
+        # 2. 编码过程
+        if self.encoders is not None:
+            encoded_part = obs_to_encode
+            for encoder in self.encoders:
+                encoded_part = encoder(encoded_part)
+            # 编码后的 encoded_part 应该是 32 维
+        else:
+            encoded_part = obs_to_encode # 降级处理
+
+        # 3. 拼接：将直接观测 (48) 和 编码特征 (32) 拼接成 80 维
+        # dim=-1 确保在特征维度拼接
+        x_combined = torch.cat([obs_direct, encoded_part], dim=-1)
+
+        # 4. 经过 GRU (需要增加序列维度)
+        out, h = self.memory(x_combined.unsqueeze(0), self.hidden_state)
+        self.hidden_state[:] = h
+        
+        # 5. 经过 Actor MLP
+        return self.actor(out.squeeze(0))
+
+    @torch.jit.export
+    def reset_memory(self):
+        """用于在 JIT 部署环境中重置机器人记忆"""
+        self.hidden_state[:] = 0.
+
+    def export(self, path):
+        os.makedirs(path, exist_ok=True)
+        path = os.path.join(path, 'policy_gru_0330.pt')
+        self.to('cpu')
+        
+        # 导出为 TorchScript 模块
+        traced_script_module = torch.jit.script(self)
+        traced_script_module.save(path)
+        print(f"成功导出 GRU 策略模型至: {path}")
 
 def merge_dict(this: dict, other: dict):
     """ Merging two dicts. if a key exists in both dict, the other's value will take priority
