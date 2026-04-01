@@ -33,7 +33,7 @@ def on_press(key):
             cmd_state["yaw"] = 0.0
             print("\n[STOP] 指令已重置为 0")
 
-        cmd_state["vx"] = np.clip(cmd_state["vx"], -1.8, 2)
+        cmd_state["vx"] = np.clip(cmd_state["vx"], -1.8, 3)
         cmd_state["yaw"] = np.clip(cmd_state["yaw"], -1.2, 1.2)
         
         print(f"\r当前指令 -> vx: {cmd_state['vx']:.2f}, yaw: {cmd_state['yaw']:.2f}    ", end="")
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     dof_pos_scale, dof_vel_scale = 1.0, 0.05
     action_scale = 0.5 
     
-    default_angles = np.array([0, 0.95, -1.8, -0.0, 0.95, -1.8, 0.0, 0.95, -1.8, -0.0, 0.95, -1.8], dtype=np.float32)
+    default_angles = np.array([0.1, 0.7, -1.5, -0.1, 0.7, -1.5, 0.1, 1.0, -1.5, -0.1, 1.0, -1.5], dtype=np.float32)
     
     # 初始参数优化
     target_kps = np.full(12, 40.0) 
@@ -207,8 +207,8 @@ if __name__ == "__main__":
     simulation_dt = 0.005 
 
     # --- 2. 环境初始化 ---
-    model_path = f"{LEGGED_GYM_ROOT_DIR}/resources/robots/Ddog/Ddog_zrg.xml"
-    policy_path = f"{LEGGED_GYM_ROOT_DIR}/deploy/pre_train/ddog/policy_gru_ddog.pt"
+    model_path = f"{LEGGED_GYM_ROOT_DIR}/resources/robots/go2/scene.xml"
+    policy_path = f"{LEGGED_GYM_ROOT_DIR}/deploy/pre_train/go2/policy_gru_go2_rough.pt"
     
     m = mujoco.MjModel.from_xml_path(model_path)
     d = mujoco.MjData(m)
@@ -255,7 +255,7 @@ if __name__ == "__main__":
             print("[Warn] glfw.init() failed, depth rendering disabled.")
     
     d.qpos[7:] = default_angles
-    d.qpos[2] = 0.3              # Ddog 身体中心离地约 0.3-0.34m
+    d.qpos[2] = 0.445              # Ddog 身体中心离地约 0.3-0.34m
     d.qvel[:] = 0                 # 初始速度彻底清零
     mujoco.mj_forward(m, d)       # 计算运动学，消除初始应力
 

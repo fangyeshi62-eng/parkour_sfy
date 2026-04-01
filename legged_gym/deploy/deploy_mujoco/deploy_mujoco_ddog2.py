@@ -5,6 +5,8 @@ import numpy as np
 import torch
 from pynput import keyboard
 import os 
+import glfw
+import cv2
 
 LEGGED_GYM_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 cmd_state = {
@@ -76,6 +78,13 @@ def _viewer_add_sphere(viewer, pos, size=0.015, rgba=(1.0, 1.0, 0.0, 0.8)):
         np.array(rgba, dtype=np.float32),
     )
     scn.ngeom += 1
+
+def get_linear_depth(depth_buffer, model):
+    extent = model.stat.extent
+    znear = model.vis.map.znear * extent
+    zfar = model.vis.map.zfar * extent
+    depth_linear = znear / (1.0 - depth_buffer * (1.0 - znear / zfar))
+    return depth_linear
 
 def get_gravity_orientation(quaternion):
     # 保持你原始的四元数投影逻辑
@@ -205,6 +214,45 @@ if __name__ == "__main__":
     d = mujoco.MjData(m)
     m.opt.timestep = simulation_dt
     base_body_name = _resolve_base_body_name(m)
+
+    # --- Depth camera setup (offscreen) ---
+    depth_camera_name = "depth_camera"
+    depth_resolution = (640, 480)  # (width, height)
+    depth_camera_id = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_CAMERA, depth_camera_name)
+    depth_window = None
+    depth_scene = None
+    depth_context = None
+    depth_mj_camera = None
+    depth_rgb = None
+    depth_buffer = None
+    depth_viewport = None
+    depth_enabled = False
+
+    if depth_camera_id == -1:
+        print(f"[Warn] Camera '{depth_camera_name}' not found in XML.")
+    else:
+        print(f"[Info] Camera '{depth_camera_name}' found, id={depth_camera_id}")
+        if glfw.init():
+            glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+            depth_window = glfw.create_window(
+                depth_resolution[0], depth_resolution[1], "DepthOffscreen", None, None
+            )
+            if depth_window is not None:
+                glfw.make_context_current(depth_window)
+                depth_scene = mujoco.MjvScene(m, maxgeom=10000)
+                depth_context = mujoco.MjrContext(m, mujoco.mjtFontScale.mjFONTSCALE_150.value)
+                mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_OFFSCREEN, depth_context)
+                depth_rgb = np.zeros((depth_resolution[1], depth_resolution[0], 3), dtype=np.uint8)
+                depth_buffer = np.zeros((depth_resolution[1], depth_resolution[0], 1), dtype=np.float32)
+                depth_viewport = mujoco.MjrRect(0, 0, depth_resolution[0], depth_resolution[1])
+                depth_mj_camera = mujoco.MjvCamera()
+                depth_mj_camera.type = mujoco.mjtCamera.mjCAMERA_FIXED
+                depth_mj_camera.fixedcamid = depth_camera_id
+                depth_enabled = True
+            else:
+                print("[Warn] Failed to create hidden GLFW window for depth rendering.")
+        else:
+            print("[Warn] glfw.init() failed, depth rendering disabled.")
     
     d.qpos[7:] = default_angles
     d.qpos[2] = 0.3              # Ddog 身体中心离地约 0.3-0.34m
@@ -268,7 +316,7 @@ if __name__ == "__main__":
                 obs[3:6] = omega * ang_vel_scale
                 obs[6:9] = get_gravity_orientation(quat)
                 obs[9:12] = current_cmd * np.array([lin_vel_scale, lin_vel_scale, ang_vel_scale])
-                #obs[9:12]= [0.5 , 0 ,0 ]
+                #obs[9:12]=0
                 obs[12:24] = (qj - default_angles) * dof_pos_scale
                 obs[24:36] = dqj * dof_vel_scale
                 obs[36:48] = action
@@ -292,17 +340,41 @@ if __name__ == "__main__":
                     target_dof_pos = action * action_scale + default_angles
                 elif d.time > 0.2:
                     target_dof_pos = action * action_scale + default_angles
-                # 打印调试信息
-                # if counter % 100 == 0:
-                #      print(f"Time: {d.time:.2f} | KP_Scale: {current_kp_scale:.2f} | Z-Vel: {lin_vel[2]:.2f}")
-                #      print(obs[0:3])
-                #     #  print(d.qpos[2])
-                #      print(obs[48:279])
-                #      print(obs[6:9])
+                ###打印调试信息
+                if counter % 100 == 0:
+                    #  print(f"Time: {d.time:.2f} | KP_Scale: {current_kp_scale:.2f} | Z-Vel: {lin_vel[2]:.2f}")
+                    #  print(obs[0:3])
+                    #  print(d.qpos[2])
+                     print(obs[48:279])
             counter += 1
+
+            # --- Depth rendering ---
+            if depth_enabled:
+                mujoco.mjv_updateScene(
+                    m, d, mujoco.MjvOption(), None, depth_mj_camera, mujoco.mjtCatBit.mjCAT_ALL, depth_scene
+                )
+                mujoco.mjr_render(depth_viewport, depth_scene, depth_context)
+                mujoco.mjr_readPixels(depth_rgb, depth_buffer, depth_viewport, depth_context)
+
+                depth_raw = np.flipud(depth_buffer).squeeze()
+                depth_meters = get_linear_depth(depth_raw, m)
+                max_dist = 5.0
+                depth_norm = np.clip(depth_meters, 0, max_dist) / max_dist
+                depth_gray = np.uint8((1.0 - depth_norm) * 255)
+                cv2.imshow("Ddog Depth View (Gray)", depth_gray)
+                if cv2.waitKey(1) == 27:
+                    break
+
             viewer.sync()
             
             # 频率控制
             time_to_sleep = simulation_dt - (time.time() - step_start)
             if time_to_sleep > 0:
                 time.sleep(time_to_sleep)
+
+    # --- Cleanup depth resources ---
+    if depth_enabled:
+        cv2.destroyAllWindows()
+        if depth_window is not None:
+            glfw.destroy_window(depth_window)
+        glfw.terminate()

@@ -26,6 +26,7 @@ class Go2RoughCfg( LeggedRobotCfg ):
         num_actions = 12
         send_timeouts = True # send time out information to the algorithm
         episode_length_s = 20 # episode length in seconds
+        history_len = 10 # for action_history_buf in LeggedRobot._init_buffers()
 
         obs_components = [
             "lin_vel",

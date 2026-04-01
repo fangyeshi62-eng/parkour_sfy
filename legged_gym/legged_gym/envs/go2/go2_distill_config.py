@@ -10,7 +10,7 @@ from legged_gym.envs.go2.go2_field_config import Go2FieldCfg, Go2FieldCfgPPO, Go
 multi_process_ = True
 class Go2DistillCfg( Go2FieldCfg ):
     class env( Go2FieldCfg.env ):
-        num_envs = 256
+        num_envs = 512
         obs_components = [
             "lin_vel",
             "ang_vel",
@@ -149,8 +149,8 @@ class Go2DistillCfgPPO( Go2FieldCfgPPO ):
 
         teacher_policy_class_name = "EncoderStateAcRecurrent"
         teacher_ac_path = osp.join(logs_root, "field_go2",
-            "{Your trained oracle parkour model directory}",
-            "{The latest model filename in the directory}"
+            r"开源参数，基线1",
+            r"model_51000.pt"
         )
 
         class teacher_policy( Go2FieldCfgPPO.policy ):
@@ -214,15 +214,15 @@ class Go2DistillCfgPPO( Go2FieldCfgPPO ):
         if multi_process_:
             pretrain_iterations = -1
             class pretrain_dataset:
-                data_dir = "{A temporary directory to store collected trajectory}"
+                data_dir = osp.join(logs_root, "tmp")
                 dataset_loops = -1
                 random_shuffle_traj_order = True
                 keep_latest_n_trajs = 1500
                 starting_frame_range = [0, 50]
 
-        resume = True
-        load_run = osp.join(logs_root, "field_go2",
-            "{Your trained oracle parkour model directory}",
+        resume = False
+        load_run = osp.join(logs_root, "distill_go2",
+            r"Mar04_05-59-15_Go2_10skills_fromMar03_00-36-35",
         )
         ckpt_manipulator = "replace_encoder0" if "field_go2" in load_run else None
 
